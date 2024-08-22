@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Angel's Anti-Security Protocols</title>
+    <style>
+
+        #container {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            background-color: grey;
+        }
+
+        #info {
+            width: 300px;
+        }
+
+        #game {
+            width: 800px;
+            height: 650px;
+            margin-left: 20px;
+            border: 1px solid black;
+            position: relative;
+            background-color: grey;
+        }
+
+        #circle {
+            width: 50px;
+            height: 50px;
+            background-color: red;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+            display: none;
+        }
+
+        #timer {
+            font-size: 24px;
+            text-align: center;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #score {
+            font-size: 24px;
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        #strikes {
+            font-size: 24px;
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        #counter {
+            font-size: 24px;
+            text-align: left;
+        }
+
+        #startButton {
+            font-size: 18px;
+            text-align: center;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        #resetButton {
+            font-size: 18px;
+            text-align: center;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            display: none;
+        }
+
+        #failScreen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            text-align: center;
+            padding-top: 200px;
+        }
+
+        #failMessage {
+            font-size: 36px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="info">
+            <div id="score"></div>
+            <div id="strikes"></div>
+            <div id="counter"></div>
+        </div>
+        <div id="game">
+            <div id="circle"></div>
+            <div id="timer"></div>
+            <button id="startButton">Start Game</button>
+            <button id="resetButton">Reset Game</button>
+        </div>
+    </div>
+
+    <div id="failScreen">
+        <div id="failMessage">Game Over</div>
+        <button id="retryButton">Retry</button>
+        <button id="failResetButton">Reset Game</button>
+    </div>
+
+    <script>
+        var tasksCompleted = 0;
+        var correctInputs = 0;
+        var strikes = 0;
+        var startTime, endTime;
+        var currentTask = null;
+
+        function showCircle() {
+            var circle = document.getElementById("circle");
+            circle.style.display = "block";
+
+            var gameWidth = document.getElementById("game").offsetWidth;
+            var gameHeight = document.getElementById("game").offsetHeight;
+            var circleSize = circle.offsetWidth;
+
+            var randomX = Math.floor(Math.random() * (gameWidth - circleSize));
+            var randomY = Math.floor(Math.random() * (gameHeight - circleSize));
+
+            circle.style.left = randomX + "px";
+            circle.style.top = randomY + "px";
+
+            circle.onclick = function() {
+                generateTask();
+                tasksCompleted++;
+                circle.style.display = "none";
+
+                if (tasksCompleted === 25) {
+                    endGame();
+                }
+            };
+        }
+
+        function generateTask() {
+            if (currentTask) {
+                document.getElementById("game").removeChild(currentTask);
+                currentTask = null;
+            }
+
+            var task = document.createElement("div");
+            var randomChar = getRandomChar();
+            task.innerHTML = randomChar;
+            task.style.fontSize = "24px";
+            task.style.textAlign = "center";
+            task.style.position = "absolute";
+            task.style.top = "50%";
+            task.style.left = "50%";
+            task.style.transform = "translate(-50%, -50%)";
+
+            document.getElementById("game").appendChild(task);
+            currentTask = task;
+
+            document.onkeypress = function(event) {
+                var keyPressed = String.fromCharCode(event.keyCode);
+                if (keyPressed.toLowerCase() === randomChar.toLowerCase()) {
+                    document.getElementById("game").removeChild(task);
+                    currentTask = null;
+                    showCircle();
+                    correctInputs++;
+                    updateScore();
+                    updateCounter();
+                } else {
+                    strikes++;
+                    updateStrikes();
+                    if (strikes === 3) {
+                        showFailScreen();
+                    }
+                }
+            };
+        }
+
+        function getRandomChar() {
+            var characters = "abcdefghijkLmnopqrstuvwxyz0123456789";
+            var randomIndex = Math.floor(Math.random() * characters.length);
+            return characters[randomIndex];
+        }
+
+        function startGame() {
+            document.getElementById("startButton").style.display = "none";
+            startTime = new Date();
+            showCircle();
+            updateTimer();
+        }
+
+        function endGame() {
+            endTime = new Date();
+            var timeTaken = (endTime - startTime) / 1000;
+            alert("Game Over! You completed 25 tasks in " + timeTaken + " seconds.");
+            document.onkeypress = null;
+            document.getElementById("resetButton").style.display = "block";
+        }
+
+        function resetGame() {
+            tasksCompleted = 0;
+            correctInputs = 0;
+            strikes = 0;
+            startTime = null;
+            endTime = null;
+            updateScore();
+            updateCounter();
+            updateStrikes();
+            document.getElementById("resetButton").style.display = "none";
+            document.getElementById("startButton").style.display = "block";
+            hideFailScreen();
+            if (currentTask) {
+                document.getElementById("game").removeChild(currentTask);
+                currentTask = null;
+            }
+        }
+
+        function updateTimer() {
+            var timer = document.getElementById("timer");
+            var currentTime = new Date();
+            var timeElapsed = (currentTime - startTime) / 1000;
+            var timeRemaining = 35 - timeElapsed;
+
+            if (timeRemaining <= 0) {
+                showFailScreen();
+                return;
+            }
+
+            timer.innerHTML = "Time: " + timeRemaining.toFixed(1) + "s";
+            setTimeout(updateTimer, 100);
+        }
+
+        function updateScore() {
+            var score = document.getElementById("score");
+            score.innerHTML = "Score: " + correctInputs;
+        }
+
+        function updateCounter() {
+            var counter = document.getElementById("counter");
+            counter.innerHTML = "Correct Inputs: " + correctInputs;
+        }
+
+        function updateStrikes() {
+            var strikesElement = document.getElementById("strikes");
+            strikesElement.innerHTML = "Strikes: " + strikes;
+        }
+
+        function showFailScreen() {
+            var failScreen = document.getElementById("failScreen");
+            failScreen.style.display = "block";
+            document.onkeypress = null;
+            document.getElementById("resetButton").style.display = "block";
+        }
+
+        function hideFailScreen() {
+            var failScreen = document.getElementById("failScreen");
+            failScreen.style.display = "none";
+            document.getElementById("resetButton").style.display = "none";
+        }
+
+        document.getElementById("startButton").addEventListener("click", startGame);
+        document.getElementById("resetButton").addEventListener("click", resetGame);
+        document.getElementById("retryButton").addEventListener("click", function() {
+            hideFailScreen();
+            if (currentTask) {
+                document.getElementById("game").removeChild(currentTask);
+                currentTask = null;
+            }
+            startGame();
+        });
+        document.getElementById("failResetButton").addEventListener("click", resetGame);
+    </script>
+</body>
+</html>
